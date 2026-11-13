@@ -1,0 +1,23 @@
+# PlatformIO build files
+.pio/
+
+# VS Code workspace settings
+.vscode/
+
+# Wi-Fi credentials and private settings
+include/secrets.h
+secrets.h
+
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# local copy of ESP32 framework compiled libraries
+packages/framework-arduinoespressif32-libs
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
