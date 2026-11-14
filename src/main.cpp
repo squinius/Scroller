@@ -233,7 +233,7 @@ void drawTimePanel() {
 
 // ---------- SETUP ----------
 
-void setup() {
+void setupxx() {
   Serial.begin(115200);
   delay(1000);
   DEBUG_PRINTLN("Starting CrowPanel Advance V1.5 radar...");
@@ -305,10 +305,6 @@ void setup() {
 
   lcd.fillScreen(TFT_BLACK);
 
-  lcd.setTextColor(TFT_WHITE, TFT_BLACK);
-  lcd.setTextSize(2);
-  lcd.setTextDatum(middle_center);
-  lcd.drawString("Connecting WiFi...", 240, 240);
 
   canvas.pushSprite(0, 0);
   
@@ -316,19 +312,133 @@ void setup() {
 
 
 
-// ---------- LOOP ----------
+// ---------- LOOP ------------
+
+#define LGFX_AUTODETECT
+#include <LovyanGFX.hpp>
+
+LGFX_Sprite ticker(&lcd);
+
+// Ticker configuration
+#define TICKER_X       10
+#define TICKER_Y       100
+#define TICKER_WIDTH   220
+#define TICKER_HEIGHT  32
+
+#define SCROLL_SPEED   1
+#define SCROLL_DELAY   20
+
+const char* message =
+    "Welcome to LovyanGFX! Smooth scrolling text demonstration.   ";
+
+int16_t scrollX;
+int16_t textWidth;
+
+uint32_t lastScroll = 0;
+
+void setup()
+{
+  Serial.begin(115200);
+  delay(1000);
+  DEBUG_PRINTLN("Starting CrowPanel Advance V1.5 ...");
+
+  // Keep the same startup sequence that successfully displayed the RGB colour test.
+  pinMode(19, OUTPUT);
+  Wire.begin(15, 16);
+  delay(50);
+
+  DEBUG_PRINTLN("Checking I2C devices...");
+
+  while (true) {
+    Wire.beginTransmission(0x30);
+    bool controllerOK = (Wire.endTransmission() == 0);
+
+    Wire.beginTransmission(0x5D);
+    bool touchOK = (Wire.endTransmission() == 0);
+
+    if (controllerOK && touchOK) {
+      DEBUG_PRINTLN("I2C devices detected");
+      break;
+    }
+
+    DEBUG_PRINTLN("Waiting for I2C devices...");
+    sendI2CCommand(250);
+
+    pinMode(1, OUTPUT);
+    digitalWrite(1, LOW);
+    delay(120);
+    pinMode(1, INPUT);
+
+    delay(100);
+  }
+
+  // Turn on the display backlight using the board controller.
+  sendI2CCommand(0);
+  delay(100);
+
+  lcd.init();
+  DEBUG_PRINTLN("Display initialised");
+
+
+    lcd.init();
+    lcd.setRotation(0);
+
+    // Draw static display
+    lcd.fillScreen(TFT_BLACK);
+
+    lcd.setTextColor(TFT_YELLOW);
+    lcd.drawString("MY DISPLAY", 10, 20, 4);
+
+    lcd.drawRect(
+        TICKER_X - 1,
+        TICKER_Y - 1,
+        TICKER_WIDTH + 2,
+        TICKER_HEIGHT + 2,
+        TFT_WHITE
+    );
+
+    // Create ticker sprite
+    ticker.setColorDepth(16);
+    ticker.setFont(&fonts::Font4);
+    ticker.setTextWrap(false);
+
+    ticker.createSprite(TICKER_WIDTH, TICKER_HEIGHT);
+
+    ticker.setTextSize(1);
+
+    // Calculate text width
+    textWidth = ticker.textWidth(message);
+
+    // Start text outside the right edge
+    scrollX = TICKER_WIDTH;
+
+    ticker.fillSprite(TFT_BLACK);
+}
 
 void loop()
 {
-  //draw graphics
-  canvas.createSprite(800, 600);
-  canvas .fillRect(0,0,800,30,c5);//draw a rectangle
-  canvas .fillRect(80,61,310,50,0x9986);//draw a rectangle
-  canvas.drawLine(80,164,80,240,0x2CAB);//draw a line
-  //canvas.loadFont(small);
-  canvas.setFont(large);
-  canvas.setTextColor(c4,c3);
-  canvas.drawString("Hello elecrow!",190,230);//write a paragraph
-  canvas.drawCircle(240, 160, 30, c5);//draw a circle
-  canvas.pushSprite(0,0);
+    if (millis() - lastScroll >= SCROLL_DELAY)
+    {
+        lastScroll = millis();
+
+        // Clear only ticker area
+        ticker.fillSprite(TFT_BLACK);
+
+        // Draw text at scrolling position
+        ticker.setTextColor(TFT_GREEN);
+        ticker.setCursor(scrollX, 0);
+        ticker.print(message);
+
+        // Move text left
+        scrollX -= SCROLL_SPEED;
+
+        // Restart after entire message leaves the screen
+        if (scrollX < -textWidth)
+        {
+            scrollX = TICKER_WIDTH;
+        }
+
+        // Update only ticker rectangle
+        ticker.pushSprite(TICKER_X, TICKER_Y);
+    }
 }
