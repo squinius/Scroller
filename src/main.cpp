@@ -15,6 +15,8 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include "time.h"
+#include <LittleFS.h>
+
 
 #include <LovyanGFX.hpp>
 #include <lgfx/v1/platforms/esp32s3/Panel_RGB.hpp>
@@ -183,60 +185,31 @@ uint16_t greenDark;
 uint16_t panelBg;
 
 
-// ---------- HELPERS ----------
-int rxCorr(int radius) {
-  return (int)(radius * X_CORR);
-}
-
-void canvasCorrectedRadialLine(int angleDeg, int r1, int r2, uint16_t col) {
-  float rad = (angleDeg - 90) * DEG_TO_RAD;
-
-  int x1 = CX + cos(rad) * rxCorr(r1);
-  int y1 = CY + sin(rad) * r1;
-  int x2 = CX + cos(rad) * rxCorr(r2);
-  int y2 = CY + sin(rad) * r2;
-
-  canvas.drawLine(x1, y1, x2, y2, col);
-}
-
-
-void drawTimePanel() {
-  int boxX = INFO_X + 18;
-  int boxY = INFO_Y + 392;
-  int boxW = INFO_W - 36;
-  int boxH = 68;
-
-  lcd.fillRect(boxX, boxY, boxW, boxH, TFT_BLACK);
-
-  lcd.drawFastHLine(INFO_X + 10, boxY - 17, INFO_W - 20, greenDark);
-
-  lcd.setTextDatum(top_left);
-  lcd.setTextSize(2);
-  lcd.setTextColor(greenBright, TFT_BLACK);
-  lcd.drawString("TIME:", boxX+110, boxY-7);
-
-  struct tm timeinfo;
-  if (getLocalTime(&timeinfo)) {
-    char timeStr[12];
-    sprintf(timeStr, "%02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-
-    lcd.setTextSize(5);
-    lcd.setTextColor(TFT_YELLOW, TFT_BLACK);
-    lcd.drawString(timeStr, boxX+20, boxY + 22);
-  } else {
-    lcd.setTextSize(4);
-    lcd.setTextColor(TFT_YELLOW, TFT_BLACK);
-    lcd.drawString("--:--:--", boxX+20, boxY + 22);
-  }
-}
-
-
 // ---------- SETUP ----------
 
 void setupxx() {
   Serial.begin(115200);
   delay(1000);
   DEBUG_PRINTLN("Starting CrowPanel Advance V1.5 radar...");
+
+
+  if (!LittleFS.begin())
+  {
+    Serial.println("LittleFS mount failed!");
+    return;
+  }
+
+  Serial.println("LittleFS mounted!");
+
+  if (LittleFS.exists("/Roboto-Bold-120.vlw"))
+  {
+  Serial.println("Font found!");
+  }
+  else
+  {
+    Serial.println("Font NOT found!");
+  }
+
 
   // Keep the same startup sequence that successfully displayed the RGB colour test.
   pinMode(19, OUTPUT);
@@ -292,7 +265,7 @@ void setupxx() {
   canvas.setColorDepth(16);
 
   if (!canvas.createSprite(480, 480)) {
-    DEBUG_PRINTLN("ERROR: Radar sprite allocation failed. Check PSRAM and board settings.");
+    DEBUG_PRINTLN("ERROR: Sprite allocation failed. Check PSRAM and board settings.");
     lcd.fillScreen(TFT_BLACK);
     lcd.setTextColor(TFT_RED, TFT_BLACK);
     lcd.setTextSize(2);
@@ -321,15 +294,15 @@ LGFX_Sprite ticker(&lcd);
 
 // Ticker configuration
 #define TICKER_X       10
-#define TICKER_Y       100
-#define TICKER_WIDTH   220
-#define TICKER_HEIGHT  32
+#define TICKER_Y       330
+#define TICKER_WIDTH   800
+#define TICKER_HEIGHT  60
 
 #define SCROLL_SPEED   1
-#define SCROLL_DELAY   20
+#define SCROLL_DELAY   10
 
 const char* message =
-    "Welcome to LovyanGFX! Smooth scrolling text demonstration.   ";
+    "Altitude 15000'   Speed 315kt   Bearing 219deg   Distance 12nm   ";
 
 int16_t scrollX;
 int16_t textWidth;
@@ -341,6 +314,49 @@ void setup()
   Serial.begin(115200);
   delay(1000);
   DEBUG_PRINTLN("Starting CrowPanel Advance V1.5 ...");
+
+  // if (!LittleFS.begin())
+  //   {
+  //       Serial.println("LittleFS mount failed!");
+  //       return;
+  //   }
+
+  // Serial.println("LittleFS mounted!");
+
+  // if (LittleFS.exists("/Roboto-Bold-120.vlw"))
+  // {
+  //     Serial.println("Font found!");
+  // }
+  // else
+  // {
+  //     Serial.println("Font NOT found!");
+  // }
+
+
+  if (!LittleFS.begin())
+  {
+    Serial.println("LittleFS mount FAILED!");
+  }
+  else
+  {
+    Serial.println("LittleFS mounted successfully!");
+
+    File root = LittleFS.open("/");
+
+    File file = root.openNextFile();
+
+    while (file)
+    {
+      Serial.print("Found file: ");
+      Serial.println(file.name());
+
+      file = root.openNextFile();
+    }
+}
+
+
+
+
 
   // Keep the same startup sequence that successfully displayed the RGB colour test.
   pinMode(19, OUTPUT);
@@ -380,65 +396,119 @@ void setup()
   DEBUG_PRINTLN("Display initialised");
 
 
-    lcd.init();
-    lcd.setRotation(0);
+  lcd.init();
+  lcd.setRotation(0);
 
-    // Draw static display
-    lcd.fillScreen(TFT_BLACK);
+  // Draw static display
+  lcd.fillScreen(TFT_BLACK);
 
-    lcd.setTextColor(TFT_YELLOW);
-    lcd.drawString("MY DISPLAY", 10, 20, 4);
+  // Use a built-in font initially
+  //lcd.loadFont(LittleFS, "/Roboto-Bold-120.vlw");
+  //lcd.setFont(&fonts::FreeSansBold24pt7b);   TEMP
+  
+  
+  //TEMP
+  
+  File file = LittleFS.open("/Arial-BoldMT-120.vlw", "r");
 
-    lcd.drawRect(
-        TICKER_X - 1,
-        TICKER_Y - 1,
-        TICKER_WIDTH + 2,
-        TICKER_HEIGHT + 2,
-        TFT_WHITE
-    );
+  if (file)
+  {
+      Serial.println("Arial font found!");
+      Serial.printf("File size: %u bytes\n", (unsigned int)file.size());
+      file.close();
+  }
+  else
+  {
+      Serial.println("Arial font NOT found!");
+  }
+  //END TEMP
+  
+  
+  // Load Roboto Bold
+  // if (lcd.loadFont(LittleFS, "/Roboto-Bold-120.vlw"))
+  Serial.println("Loading Arial...");
 
-    // Create ticker sprite
-    ticker.setColorDepth(16);
-    ticker.setFont(&fonts::Font4);
-    ticker.setTextWrap(false);
+  if (lcd.loadFont(LittleFS, "/Arial-BoldMT-120.vlw"))
+  {
+      Serial.println("Font loaded!");
 
-    ticker.createSprite(TICKER_WIDTH, TICKER_HEIGHT);
+      lcd.fillScreen(TFT_BLACK);
 
-    ticker.setTextSize(1);
+      lcd.setTextDatum(middle_center);
 
-    // Calculate text width
-    textWidth = ticker.textWidth(message);
+      // IMPORTANT: Specify foreground AND background colours
+      lcd.setTextColor(TFT_YELLOW, TFT_BLACK);
 
-    // Start text outside the right edge
-    scrollX = TICKER_WIDTH;
+      Serial.println("Drawing text...");
 
-    ticker.fillSprite(TFT_BLACK);
+      lcd.drawString("BRITISH AIRWAYS", 400, 240);
+
+      Serial.println("Text drawn successfully!");
+
+      lcd.unloadFont();
+  }
+  else
+  {
+      Serial.println("Font loading failed!");
+  }
+    
+  // lcd.setTextColor(TFT_RED);
+  // lcd.drawString("British Airways", 0, 0);
+
+/* TEMP ****************************************
+  lcd.setTextColor(TFT_BLUE);
+  lcd.drawString("BAW859  Václav Havel Airport Prague (LKPR) => London Heathrow Airport (EGLL)  BOEING 737-800", 0, 160);
+  
+
+  // Create ticker sprite
+  ticker.setColorDepth(16);
+  //ticker.setFont(&fonts::Font4);
+  ticker.setFont(&fonts::FreeSansBold24pt7b);
+
+  ticker.setTextWrap(false);
+
+  ticker.createSprite(TICKER_WIDTH, TICKER_HEIGHT);
+
+  ticker.setTextSize(1);
+  
+  // Calculate text width
+  textWidth = ticker.textWidth(message);
+
+  // Start text outside the right edge
+  scrollX = TICKER_WIDTH;
+
+  ticker.fillSprite(TFT_BLACK);
+
+    END TEMP*/
+
 }
 
 void loop()
 {
-    if (millis() - lastScroll >= SCROLL_DELAY)
-    {
-        lastScroll = millis();
+  // if (millis() - lastScroll >= SCROLL_DELAY)
+  // {
+  //   lastScroll = millis();
 
-        // Clear only ticker area
-        ticker.fillSprite(TFT_BLACK);
+  //   // Clear only ticker area
+  //   ticker.fillSprite(TFT_BLACK);
 
-        // Draw text at scrolling position
-        ticker.setTextColor(TFT_GREEN);
-        ticker.setCursor(scrollX, 0);
-        ticker.print(message);
+  //   // Draw text at scrolling position
+  //   ticker.setTextColor(TFT_GREEN);
+  //   ticker.setCursor(scrollX, 0);
+  //   ticker.print(message);
 
-        // Move text left
-        scrollX -= SCROLL_SPEED;
+  //   // Move text left
+  //   scrollX -= SCROLL_SPEED;
 
-        // Restart after entire message leaves the screen
-        if (scrollX < -textWidth)
-        {
-            scrollX = TICKER_WIDTH;
-        }
+  //   // Restart after entire message leaves the screen
+  //   if (scrollX < -textWidth)
+  //   {
+  //     scrollX = TICKER_WIDTH;
+  //   }
 
-        // Update only ticker rectangle
-        ticker.pushSprite(TICKER_X, TICKER_Y);
-    }
+  //   // Update only ticker rectangle
+  //   ticker.pushSprite(TICKER_X, TICKER_Y);
+// }
+
+  delay(1000);
 }
