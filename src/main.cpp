@@ -16,7 +16,7 @@
 #include <Wire.h>
 #include "time.h"
 #include <LittleFS.h>
-
+#include "esp_heap_caps.h"
 
 #include <LovyanGFX.hpp>
 #include <lgfx/v1/platforms/esp32s3/Panel_RGB.hpp>
@@ -46,6 +46,8 @@
 #define c4 0x2CAB  //green
 #define c5 0xBDEF //gold
 #define c6 0xFFFAFA //snow
+
+uint8_t* arialFont = nullptr;    //temp
 
 class LGFX : public lgfx::LGFX_Device {
 public:
@@ -409,7 +411,7 @@ void setup()
   
   //TEMP
   
-  File file = LittleFS.open("/Arial-BoldMT-120.vlw", "r");
+  File file = LittleFS.open("/Calibri-Bold-120.vlw", "r");
 
   if (file)
   {
@@ -424,33 +426,78 @@ void setup()
   //END TEMP
   
   
-  // Load Roboto Bold
-  // if (lcd.loadFont(LittleFS, "/Roboto-Bold-120.vlw"))
-  Serial.println("Loading Arial...");
+  Serial.println("Opening Arial font...");
 
-  if (lcd.loadFont(LittleFS, "/Arial-BoldMT-120.vlw"))
+  File fontFile = LittleFS.open("/Calibri-Bold-120.vlw", "r");
+
+  if (!fontFile)
   {
-      Serial.println("Font loaded!");
-
-      lcd.fillScreen(TFT_BLACK);
-
-      lcd.setTextDatum(middle_center);
-
-      // IMPORTANT: Specify foreground AND background colours
-      lcd.setTextColor(TFT_YELLOW, TFT_BLACK);
-
-      Serial.println("Drawing text...");
-
-      lcd.drawString("BRITISH AIRWAYS", 400, 240);
-
-      Serial.println("Text drawn successfully!");
-
-      lcd.unloadFont();
+      Serial.println("Cannot open font!");
+      return;
   }
-  else
+
+  size_t fontSize = fontFile.size();
+
+  Serial.printf("Font size: %u bytes\n", fontSize);
+
+  // Allocate memory in PSRAM
+  arialFont = (uint8_t*)heap_caps_malloc(
+      fontSize,
+      MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT
+  );
+
+  if (!arialFont)
+  {
+      Serial.println("PSRAM allocation failed!");
+      fontFile.close();
+      return;
+  }
+
+  // Read entire font into PSRAM
+  size_t bytesRead = fontFile.read(arialFont, fontSize);
+
+  fontFile.close();
+
+  if (bytesRead != fontSize)
+  {
+      Serial.println("Font read incomplete!");
+      heap_caps_free(arialFont);
+      arialFont = nullptr;
+      return;
+  }
+
+  Serial.println("Font copied into PSRAM");
+
+  // Load font from memory instead of LittleFS
+  if (!lcd.loadFont(arialFont))
   {
       Serial.println("Font loading failed!");
+
+      heap_caps_free(arialFont);
+      arialFont = nullptr;
+      return;
   }
+
+  Serial.println("Font loaded successfully!");
+
+  lcd.fillScreen(TFT_BLACK);
+
+  lcd.setTextColor(TFT_YELLOW, TFT_BLACK);
+  lcd.setTextDatum(middle_center);
+
+  Serial.println("Drawing A...");
+
+  lcd.drawString("British Airways", 400, 240);
+
+  Serial.println("Character drawn!");
+
+  lcd.unloadFont();
+
+  // Now safe to release the font buffer
+  heap_caps_free(arialFont);
+  arialFont = nullptr;
+
+  Serial.println("Test completed!");
     
   // lcd.setTextColor(TFT_RED);
   // lcd.drawString("British Airways", 0, 0);
@@ -460,7 +507,7 @@ void setup()
   lcd.drawString("BAW859  Václav Havel Airport Prague (LKPR) => London Heathrow Airport (EGLL)  BOEING 737-800", 0, 160);
   
 
-  // Create ticker sprite
+  // Create ticker sprites
   ticker.setColorDepth(16);
   //ticker.setFont(&fonts::Font4);
   ticker.setFont(&fonts::FreeSansBold24pt7b);
