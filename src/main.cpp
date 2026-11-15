@@ -24,10 +24,6 @@
 
 #include <driver/i2c.h>
 #include <ArduinoJson.h>
-#include <esp_heap_caps.h>
-
-
-
 
 //define font
 #define latin Latin_Hiragana_24
@@ -46,8 +42,6 @@
 #define c4 0x2CAB  //green
 #define c5 0xBDEF //gold
 #define c6 0xFFFAFA //snow
-
-uint8_t* arialFont = nullptr;    //temp
 
 class LGFX : public lgfx::LGFX_Device {
 public:
@@ -189,103 +183,6 @@ uint16_t panelBg;
 
 // ---------- SETUP ----------
 
-void setupxx() {
-  Serial.begin(115200);
-  delay(1000);
-  DEBUG_PRINTLN("Starting CrowPanel Advance V1.5 radar...");
-
-
-  if (!LittleFS.begin())
-  {
-    Serial.println("LittleFS mount failed!");
-    return;
-  }
-
-  Serial.println("LittleFS mounted!");
-
-  if (LittleFS.exists("/Roboto-Bold-120.vlw"))
-  {
-  Serial.println("Font found!");
-  }
-  else
-  {
-    Serial.println("Font NOT found!");
-  }
-
-
-  // Keep the same startup sequence that successfully displayed the RGB colour test.
-  pinMode(19, OUTPUT);
-  Wire.begin(15, 16);
-  delay(50);
-
-  DEBUG_PRINTLN("Checking I2C devices...");
-
-  while (true) {
-    Wire.beginTransmission(0x30);
-    bool controllerOK = (Wire.endTransmission() == 0);
-
-    Wire.beginTransmission(0x5D);
-    bool touchOK = (Wire.endTransmission() == 0);
-
-    if (controllerOK && touchOK) {
-      DEBUG_PRINTLN("I2C devices detected");
-      break;
-    }
-
-    DEBUG_PRINTLN("Waiting for I2C devices...");
-    sendI2CCommand(250);
-
-    pinMode(1, OUTPUT);
-    digitalWrite(1, LOW);
-    delay(120);
-    pinMode(1, INPUT);
-
-    delay(100);
-  }
-
-  // Turn on the display backlight using the board controller.
-  sendI2CCommand(0);
-  delay(100);
-
-  lcd.init();
-  DEBUG_PRINTLN("Display initialised");
-
-  lcd.fillScreen(TFT_WHITE);//fills the display screen with white color.<br>
-//  sprite.createSprite(480,320);//creates a sprite object with a width of 480 pixels and a height of 320 pixels. This sprite is likely used to draw graphics or images on the display.<br>
-
-
-
-
-  greenBright = lcd.color565(0, 255, 35);
-  green       = lcd.color565(0, 180, 25);
-  red         = lcd.color565(255, 0, 0);
-  greenDim    = lcd.color565(0, 90, 18);
-  greenDark   = lcd.color565(0, 45, 10);
-  panelBg     = lcd.color565(0, 20, 0);
-
-  canvas.setPsram(true);
-  canvas.setColorDepth(16);
-
-  if (!canvas.createSprite(480, 480)) {
-    DEBUG_PRINTLN("ERROR: Sprite allocation failed. Check PSRAM and board settings.");
-    lcd.fillScreen(TFT_BLACK);
-    lcd.setTextColor(TFT_RED, TFT_BLACK);
-    lcd.setTextSize(2);
-    lcd.setTextDatum(middle_center);
-    lcd.drawString("RADAR MEMORY ERROR", 400, 240);
-    while (true) {
-      delay(1000);
-    }
-  }
-
-  lcd.fillScreen(TFT_BLACK);
-
-
-  canvas.pushSprite(0, 0);
-  
-}
-
-
 
 // ---------- LOOP ------------
 
@@ -316,24 +213,6 @@ void setup()
   Serial.begin(115200);
   delay(1000);
   DEBUG_PRINTLN("Starting CrowPanel Advance V1.5 ...");
-
-  // if (!LittleFS.begin())
-  //   {
-  //       Serial.println("LittleFS mount failed!");
-  //       return;
-  //   }
-
-  // Serial.println("LittleFS mounted!");
-
-  // if (LittleFS.exists("/Roboto-Bold-120.vlw"))
-  // {
-  //     Serial.println("Font found!");
-  // }
-  // else
-  // {
-  //     Serial.println("Font NOT found!");
-  // }
-
 
   if (!LittleFS.begin())
   {
@@ -405,28 +284,10 @@ void setup()
   lcd.fillScreen(TFT_BLACK);
 
   // Use a built-in font initially
-  //lcd.loadFont(LittleFS, "/Roboto-Bold-120.vlw");
+  
   //lcd.setFont(&fonts::FreeSansBold24pt7b);   TEMP
   
-  
-  //TEMP
-  
-  File file = LittleFS.open("/Calibri-Bold-120.vlw", "r");
-
-  if (file)
-  {
-      Serial.println("Arial font found!");
-      Serial.printf("File size: %u bytes\n", (unsigned int)file.size());
-      file.close();
-  }
-  else
-  {
-      Serial.println("Arial font NOT found!");
-  }
-  //END TEMP
-  
-  
-  Serial.println("Opening Arial font...");
+  Serial.println("Opening Calibri font...");
 
   File fontFile = LittleFS.open("/Calibri-Bold-120.vlw", "r");
 
@@ -440,62 +301,71 @@ void setup()
 
   Serial.printf("Font size: %u bytes\n", fontSize);
 
-  // Allocate memory in PSRAM
-  arialFont = (uint8_t*)heap_caps_malloc(
-      fontSize,
-      MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT
-  );
-
-  if (!arialFont)
-  {
-      Serial.println("PSRAM allocation failed!");
-      fontFile.close();
-      return;
-  }
-
-  // Read entire font into PSRAM
-  size_t bytesRead = fontFile.read(arialFont, fontSize);
-
-  fontFile.close();
-
-  if (bytesRead != fontSize)
-  {
-      Serial.println("Font read incomplete!");
-      heap_caps_free(arialFont);
-      arialFont = nullptr;
-      return;
-  }
-
-  Serial.println("Font copied into PSRAM");
-
-  // Load font from memory instead of LittleFS
-  if (!lcd.loadFont(arialFont))
-  {
-      Serial.println("Font loading failed!");
-
-      heap_caps_free(arialFont);
-      arialFont = nullptr;
-      return;
-  }
-
-  Serial.println("Font loaded successfully!");
-
+  
   lcd.fillScreen(TFT_BLACK);
 
-  lcd.setTextColor(TFT_YELLOW, TFT_BLACK);
-  lcd.setTextDatum(middle_center);
 
-  Serial.println("Drawing A...");
+  // Row 1
 
-  lcd.drawString("British Airways", 400, 240);
+  if (lcd.loadFont(LittleFS, "/Calibri-Bold-120.vlw"))
+  {
+    Serial.println("Font loaded");
 
-  Serial.println("Character drawn!");
+    // lcd.setTextDatum(middle_center);
+    lcd.setTextDatum(top_left);
+    lcd.setTextColor(TFT_RED);
+    lcd.drawString("British Airways", 0, 0);
 
-  lcd.unloadFont();
+    Serial.println("Drawing completed");
 
-  // Now safe to release the font buffer
-  heap_caps_free(arialFont);
-  arialFont = nullptr;
+    lcd.unloadFont();
+  }
+  else
+  {
+      Serial.println("Font loading failed");
+  }
+
+  // Row 2
+
+  if (lcd.loadFont(LittleFS, "/Calibri-Bold-100.vlw"))
+  {
+    Serial.println("Font loaded");
+
+    // lcd.setTextDatum(middle_center);
+    lcd.setTextDatum(top_left);
+    lcd.setTextColor(TFT_BLUE);
+    lcd.drawString("BAW859  Václav Havel Airport Prague (LKPR) => London Heathrow Airport (EGLL)  BOEING 737-800", 0, 160);
+
+    Serial.println("Drawing completed");
+
+    lcd.unloadFont();
+  }
+  else
+  {
+    Serial.println("Font loading failed");
+  }
+
+  
+  // Row 3
+
+  if (lcd.loadFont(LittleFS, "/Calibri-Bold-100.vlw"))
+  {
+    Serial.println("Font loaded");
+
+    // lcd.setTextDatum(middle_center);
+    lcd.setTextDatum(top_left);
+    lcd.setTextColor(TFT_GREEN);
+    lcd.drawString("Altitude 15000'   Speed 315kt   Bearing 219deg   Distance 12nm   ", 0, 320);
+
+    Serial.println("Drawing completed");
+
+    lcd.unloadFont();
+  }
+  else
+  {
+    Serial.println("Font loading failed");
+  }
+
 
   Serial.println("Test completed!");
     
