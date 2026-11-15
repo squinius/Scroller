@@ -192,21 +192,28 @@ uint16_t panelBg;
 LGFX_Sprite ticker(&lcd);
 
 // Ticker configuration
-#define TICKER_X       10
-#define TICKER_Y       330
+#define TICKER_X       0
+#define TICKER_Y       320
 #define TICKER_WIDTH   800
-#define TICKER_HEIGHT  60
+#define TICKER_HEIGHT  120
 
-#define SCROLL_SPEED   1
-#define SCROLL_DELAY   10
+#define SCROLL_DELAY   1
+
+// Ticker variable
+
+float scrollX = TICKER_WIDTH;
+const float SCROLL_SPEED = 80.0f;  // Pixels per second 
+unsigned long lastScroll = 0;
+
+
 
 const char* message =
     "Altitude 15000'   Speed 315kt   Bearing 219deg   Distance 12nm   ";
 
-int16_t scrollX;
+//int16_t scrollX;
 int16_t textWidth;
 
-uint32_t lastScroll = 0;
+//uint32_t lastScroll = 0;
 
 void setup()
 {
@@ -345,48 +352,19 @@ void setup()
     Serial.println("Font loading failed");
   }
 
-  
-  // Row 3
-
-  if (lcd.loadFont(LittleFS, "/Calibri-Bold-100.vlw"))
-  {
-    Serial.println("Font loaded");
-
-    // lcd.setTextDatum(middle_center);
-    lcd.setTextDatum(top_left);
-    lcd.setTextColor(TFT_GREEN);
-    lcd.drawString("Altitude 15000'   Speed 315kt   Bearing 219deg   Distance 12nm   ", 0, 320);
-
-    Serial.println("Drawing completed");
-
-    lcd.unloadFont();
-  }
-  else
-  {
-    Serial.println("Font loading failed");
-  }
-
-
-  Serial.println("Test completed!");
-    
-  // lcd.setTextColor(TFT_RED);
-  // lcd.drawString("British Airways", 0, 0);
-
-/* TEMP ****************************************
-  lcd.setTextColor(TFT_BLUE);
-  lcd.drawString("BAW859  Václav Havel Airport Prague (LKPR) => London Heathrow Airport (EGLL)  BOEING 737-800", 0, 160);
-  
-
+ 
+ // Row 3 - prepare the sprite used to manage the scrolling display
+ 
   // Create ticker sprites
   ticker.setColorDepth(16);
-  //ticker.setFont(&fonts::Font4);
-  ticker.setFont(&fonts::FreeSansBold24pt7b);
-
+  ticker.setColor(TFT_GREEN);
+  ticker.loadFont(LittleFS, "/Calibri-Bold-100.vlw");
+  
   ticker.setTextWrap(false);
 
   ticker.createSprite(TICKER_WIDTH, TICKER_HEIGHT);
 
-  ticker.setTextSize(1);
+  //ticker.setTextSize(1);
   
   // Calculate text width
   textWidth = ticker.textWidth(message);
@@ -396,36 +374,70 @@ void setup()
 
   ticker.fillSprite(TFT_BLACK);
 
-    END TEMP*/
 
 }
+/*
+void loop()
+{
+  if (millis() - lastScroll >= SCROLL_DELAY)
+  {
+    lastScroll = millis();
+
+    // Clear only ticker area
+    ticker.fillSprite(TFT_BLACK);
+
+    // Draw text at scrolling position
+    ticker.setTextColor(TFT_GREEN);
+    ticker.setCursor(scrollX, 0);
+    ticker.print(message);
+
+    // Move text left
+    scrollX -= SCROLL_SPEED;
+
+    // Restart after entire message leaves the screen
+    if (scrollX < -textWidth)
+    {
+      scrollX = TICKER_WIDTH;
+    }
+
+    // Update only ticker rectangle
+    ticker.pushSprite(TICKER_X, TICKER_Y);
+}
+
+  // delay(1000);
+}*/
 
 void loop()
 {
-  // if (millis() - lastScroll >= SCROLL_DELAY)
-  // {
-  //   lastScroll = millis();
+    unsigned long now = millis();
 
-  //   // Clear only ticker area
-  //   ticker.fillSprite(TFT_BLACK);
+    if (lastScroll == 0)
+    {
+        lastScroll = now;
+        return;
+    }
 
-  //   // Draw text at scrolling position
-  //   ticker.setTextColor(TFT_GREEN);
-  //   ticker.setCursor(scrollX, 0);
-  //   ticker.print(message);
+    float elapsed = (now - lastScroll) / 1000.0f;
 
-  //   // Move text left
-  //   scrollX -= SCROLL_SPEED;
+    // Update scrolling position
+    scrollX -= SCROLL_SPEED * elapsed;
 
-  //   // Restart after entire message leaves the screen
-  //   if (scrollX < -textWidth)
-  //   {
-  //     scrollX = TICKER_WIDTH;
-  //   }
+    lastScroll = now;
 
-  //   // Update only ticker rectangle
-  //   ticker.pushSprite(TICKER_X, TICKER_Y);
-// }
+    // Clear ticker area
+    ticker.fillSprite(TFT_BLACK);
 
-  delay(1000);
+    // Draw scrolling text
+    ticker.setTextColor(TFT_GREEN);
+    ticker.setCursor((int)scrollX, 0);
+    ticker.print(message);
+
+    // Restart after entire message leaves screen
+    if (scrollX < -textWidth)
+    {
+        scrollX = TICKER_WIDTH;
+    }
+
+    // Update ticker display
+    ticker.pushSprite(TICKER_X, TICKER_Y);
 }
