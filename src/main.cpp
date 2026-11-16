@@ -208,7 +208,7 @@ unsigned long lastScroll = 0;
 
 
 const char* dataMessage =
-    "Alt. 15000' Speed 315kt Bearing 219deg Distance 12nm ";
+    "Alt. 15000'  Speed 315kt  Bearing 219deg  Distance 12nm    -   ";
 
 //int16_t dataScrollX;
 int16_t dataMessageWidth;
@@ -397,38 +397,12 @@ void setup()
 
 
 }
-/*
-void loop()
-{
-  if (millis() - lastScroll >= SCROLL_DELAY)
-  {
-    lastScroll = millis();
 
-    // Clear only ticker area
-    dataTicker.fillSprite(TFT_BLACK);
+// ****************************
+// **** Main loop
+// ****************************
 
-    // Draw text at scrolling position
-    dataTicker.setTextColor(TFT_GREEN);
-    dataTicker.setCursor(dataScrollX, 0);
-    dataTicker.print(dataMessage);
-
-    // Move text left
-    dataScrollX -= SCROLL_SPEED;
-
-    // Restart after entire message leaves the screen
-    if (dataScrollX < -dataMessageWidth)
-    {
-      dataScrollX = DATATICKER_WIDTH;
-    }
-
-    // Update only ticker rectangle
-    dataTicker.pushSprite(DATATICKER_X, DATATICKER_Y);
-}
-
-  // delay(1000);
-}*/
-
-void loop()
+/* TEMPvoid loop()
 {
     unsigned long now = millis();
 
@@ -461,4 +435,46 @@ void loop()
 
     // Update ticker display
     dataTicker.pushSprite(DATATICKER_X, DATATICKER_Y);
+
+*/
+void loop()
+{
+    unsigned long now = millis();
+
+    if (lastScroll == 0)
+    {
+        lastScroll = now;
+        return;
+    }
+
+    float elapsed = (now - lastScroll) / 1000.0f;
+
+    // Update scrolling position
+    dataScrollX -= SCROLL_SPEED * elapsed;
+
+    lastScroll = now;
+
+    // Reset position when one complete message has scrolled past
+    if (dataScrollX <= -dataMessageWidth)
+    {
+        dataScrollX += dataMessageWidth;
+    }
+
+    // Clear ticker area
+    dataTicker.fillSprite(TFT_BLACK);
+
+    // Set text colour
+    dataTicker.setTextColor(TFT_GREEN);
+
+    // Draw first copy
+    dataTicker.setCursor((int)dataScrollX, 0);
+    dataTicker.print(dataMessage);
+
+    // Draw second copy immediately after first
+    dataTicker.setCursor((int)dataScrollX + dataMessageWidth, 0);
+    dataTicker.print(dataMessage);
+
+    // Update ticker display
+    dataTicker.pushSprite(DATATICKER_X, DATATICKER_Y);
 }
+
