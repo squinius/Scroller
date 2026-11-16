@@ -193,7 +193,7 @@ LGFX_Sprite dataTicker(&lcd);
 
 // Ticker configuration
 #define DATATICKER_X       0
-#define DATATICKER_Y       320
+#define DATATICKER_Y       380
 #define DATATICKER_WIDTH   800
 #define DATATICKER_HEIGHT  120
 
@@ -208,7 +208,7 @@ unsigned long lastScroll = 0;
 
 
 const char* dataMessage =
-    "Altitude 15000'   Speed 315kt   Bearing 219deg   Distance 12nm ABCDEFGHIJKLMNOPQRSTUVWXYZ  ";
+    "Alt. 15000' Speed 315kt Bearing 219deg Distance 12nm ";
 
 //int16_t dataScrollX;
 int16_t dataMessageWidth;
@@ -314,14 +314,14 @@ void setup()
 
   // Row 1
 
-  if (lcd.loadFont(LittleFS, "/Calibri-Bold-120.vlw"))
+  if (lcd.loadFont(LittleFS, "/Calibri-Bold-100.vlw"))
   {
     Serial.println("Font loaded");
 
     // lcd.setTextDatum(middle_center);
     lcd.setTextDatum(top_left);
     lcd.setTextColor(TFT_RED);
-    lcd.drawString("British Airways", 0, 0);
+    lcd.drawString("British Airways", 0, 50);
 
     Serial.println("Drawing completed");
 
@@ -334,14 +334,35 @@ void setup()
 
   // Row 2
 
-  if (lcd.loadFont(LittleFS, "/Calibri-Bold-100.vlw"))
+  if (lcd.loadFont(LittleFS, "/Calibri-Bold-60.vlw"))
   {
     Serial.println("Font loaded");
 
     // lcd.setTextDatum(middle_center);
     lcd.setTextDatum(top_left);
     lcd.setTextColor(TFT_BLUE);
-    lcd.drawString("BAW859  Václav Havel Airport Prague (LKPR) => London Heathrow Airport (EGLL)  BOEING 737-800", 0, 160);
+    lcd.drawString("BAW859  BOEING 737-800", 0, 200);
+
+
+    Serial.println("Drawing completed");
+
+    lcd.unloadFont();
+  }
+  else
+  {
+    Serial.println("Font loading failed");
+  }
+
+ // Row 2a
+
+  if (lcd.loadFont(LittleFS, "/Calibri-Bold-50.vlw"))
+  {
+    Serial.println("Font loaded");
+
+    // lcd.setTextDatum(middle_center);
+    lcd.setTextDatum(top_left);
+    lcd.setTextColor(TFT_CYAN);
+    lcd.drawString("Prague (LKPR) / London (EGLL) ", 0, 300);
 
     Serial.println("Drawing completed");
 
@@ -358,7 +379,7 @@ void setup()
   // Create ticker sprites
   dataTicker.setColorDepth(16);
   dataTicker.setColor(TFT_GREEN);
-  dataTicker.loadFont(LittleFS, "/Calibri-Bold-100.vlw");
+  dataTicker.loadFont(LittleFS, "/Calibri-Bold-50.vlw");
   
   dataTicker.setTextWrap(false);
 
