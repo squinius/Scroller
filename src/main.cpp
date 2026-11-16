@@ -189,29 +189,29 @@ uint16_t panelBg;
 #define LGFX_AUTODETECT
 #include <LovyanGFX.hpp>
 
-LGFX_Sprite ticker(&lcd);
+LGFX_Sprite dataTicker(&lcd);
 
 // Ticker configuration
-#define TICKER_X       0
-#define TICKER_Y       320
-#define TICKER_WIDTH   800
-#define TICKER_HEIGHT  120
+#define DATATICKER_X       0
+#define DATATICKER_Y       320
+#define DATATICKER_WIDTH   800
+#define DATATICKER_HEIGHT  120
 
 #define SCROLL_DELAY   1
 
 // Ticker variable
 
-float scrollX = TICKER_WIDTH;
+float dataScrollX = DATATICKER_WIDTH;
 const float SCROLL_SPEED = 80.0f;  // Pixels per second 
 unsigned long lastScroll = 0;
 
 
 
-const char* message =
-    "Altitude 15000'   Speed 315kt   Bearing 219deg   Distance 12nm   ";
+const char* dataMessage =
+    "Altitude 15000'   Speed 315kt   Bearing 219deg   Distance 12nm ABCDEFGHIJKLMNOPQRSTUVWXYZ  ";
 
-//int16_t scrollX;
-int16_t textWidth;
+//int16_t dataScrollX;
+int16_t dataMessageWidth;
 
 //uint32_t lastScroll = 0;
 
@@ -356,23 +356,23 @@ void setup()
  // Row 3 - prepare the sprite used to manage the scrolling display
  
   // Create ticker sprites
-  ticker.setColorDepth(16);
-  ticker.setColor(TFT_GREEN);
-  ticker.loadFont(LittleFS, "/Calibri-Bold-100.vlw");
+  dataTicker.setColorDepth(16);
+  dataTicker.setColor(TFT_GREEN);
+  dataTicker.loadFont(LittleFS, "/Calibri-Bold-100.vlw");
   
-  ticker.setTextWrap(false);
+  dataTicker.setTextWrap(false);
 
-  ticker.createSprite(TICKER_WIDTH, TICKER_HEIGHT);
+  dataTicker.createSprite(DATATICKER_WIDTH, DATATICKER_HEIGHT);
 
-  //ticker.setTextSize(1);
+  //dataTicker.setTextSize(1);
   
   // Calculate text width
-  textWidth = ticker.textWidth(message);
+  dataMessageWidth = dataTicker.textWidth(dataMessage);
 
   // Start text outside the right edge
-  scrollX = TICKER_WIDTH;
+  dataScrollX = DATATICKER_WIDTH;
 
-  ticker.fillSprite(TFT_BLACK);
+  dataTicker.fillSprite(TFT_BLACK);
 
 
 }
@@ -384,24 +384,24 @@ void loop()
     lastScroll = millis();
 
     // Clear only ticker area
-    ticker.fillSprite(TFT_BLACK);
+    dataTicker.fillSprite(TFT_BLACK);
 
     // Draw text at scrolling position
-    ticker.setTextColor(TFT_GREEN);
-    ticker.setCursor(scrollX, 0);
-    ticker.print(message);
+    dataTicker.setTextColor(TFT_GREEN);
+    dataTicker.setCursor(dataScrollX, 0);
+    dataTicker.print(dataMessage);
 
     // Move text left
-    scrollX -= SCROLL_SPEED;
+    dataScrollX -= SCROLL_SPEED;
 
     // Restart after entire message leaves the screen
-    if (scrollX < -textWidth)
+    if (dataScrollX < -dataMessageWidth)
     {
-      scrollX = TICKER_WIDTH;
+      dataScrollX = DATATICKER_WIDTH;
     }
 
     // Update only ticker rectangle
-    ticker.pushSprite(TICKER_X, TICKER_Y);
+    dataTicker.pushSprite(DATATICKER_X, DATATICKER_Y);
 }
 
   // delay(1000);
@@ -420,24 +420,24 @@ void loop()
     float elapsed = (now - lastScroll) / 1000.0f;
 
     // Update scrolling position
-    scrollX -= SCROLL_SPEED * elapsed;
+    dataScrollX -= SCROLL_SPEED * elapsed;
 
     lastScroll = now;
 
     // Clear ticker area
-    ticker.fillSprite(TFT_BLACK);
+    dataTicker.fillSprite(TFT_BLACK);
 
     // Draw scrolling text
-    ticker.setTextColor(TFT_GREEN);
-    ticker.setCursor((int)scrollX, 0);
-    ticker.print(message);
+    dataTicker.setTextColor(TFT_GREEN);
+    dataTicker.setCursor((int)dataScrollX, 0);
+    dataTicker.print(dataMessage);
 
     // Restart after entire message leaves screen
-    if (scrollX < -textWidth)
+    if (dataScrollX < -dataMessageWidth)
     {
-        scrollX = TICKER_WIDTH;
+        dataScrollX = DATATICKER_WIDTH;
     }
 
     // Update ticker display
-    ticker.pushSprite(TICKER_X, TICKER_Y);
+    dataTicker.pushSprite(DATATICKER_X, DATATICKER_Y);
 }
